@@ -4,27 +4,22 @@ BASE_URL = "http://127.0.0.1:8000"
 
 
 def listar_produtos():
-    """Busca e retorna a lista de todos os produtos."""
     response = httpx.get(f"{BASE_URL}/produtos")
     return response.json()
 
 def obter_produto(id: int):
-    """Busca e retorna um único produto pelo seu ID."""
     response = httpx.get(f"{BASE_URL}/produtos/{id}")
     return response.json()
 
 def criar_produto(produto: dict):
-    """Envia os dados de um novo produto para a API e o retorna."""
     response = httpx.post(f"{BASE_URL}/produtos", json=produto)
     return response.json()
 
 def atualizar_produto(id: int, produto: dict):
-    """Atualiza um produto existente com novos dados."""
     response = httpx.put(f"{BASE_URL}/produtos/{id}", json=produto)
     return response.json()
 
 def apagar_produto(id: int):
-    """Apaga um produto da API pelo seu ID."""
     response = httpx.delete(f"{BASE_URL}/produtos/{id}")
     return {"status_code": response.status_code}
 

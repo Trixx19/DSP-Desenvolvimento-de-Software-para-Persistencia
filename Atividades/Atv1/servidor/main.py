@@ -21,7 +21,7 @@ data = {
 produtos_df = pd.DataFrame(data)
 
 next_id = produtos_df['id'].max() + 1 if not produtos_df.empty else 1
-
+  
 @app.get("/produtos", response_model=list[ProdutoInDB])
 def get_produtos():
     return produtos_df.to_dict(orient='records')
