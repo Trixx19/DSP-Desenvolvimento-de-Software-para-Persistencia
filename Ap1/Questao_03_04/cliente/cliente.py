@@ -31,13 +31,11 @@ def listar_alunos():
     if response.status_code == 200:
         print("Resposta do servidor (Todos os alunos):")
         lista_de_alunos = response.json()
-        
-        
         print(lista_de_alunos)
     else:
         print(f"Erro ao listar: {response.status_code}")
 
-if __name__ == "_main_":
+if __name__ == "__main__":
     try:
         adicionar_aluno("Mariana Costa", 9.5)
         adicionar_aluno("Pedro Álvares", 7.0)
