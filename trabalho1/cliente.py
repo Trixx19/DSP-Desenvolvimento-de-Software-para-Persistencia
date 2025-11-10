@@ -9,9 +9,17 @@ def get_produto_by_id(id: int):
     response = httpx.get(f"{BASE_URL}/produtos/{id}")
     return response.json()
 
-def criar_produto(produto: dict): #dict ou Produto? #Servidor o BaseModel Produto para validar entrada
-    response = httpx.post(f"{BASE_URL}/produtos", json=produto)
+def criar_produto(produto): #dict ou Produto? #Servidor o BaseModel Produto para validar entrada
+    response = httpx.post(
+        f"{BASE_URL}/produtos",
+        json={
+            "nome": produto.get("nome"),
+            "categoria": produto.get("categoria"),
+            "preco": produto.get("preco")
+        }
+    )
     return response.json()
+
 
 def atualizar_produto(id: int, produto: dict):
     response = httpx.put(f"{BASE_URL}/produtos/{id}", json=produto)
@@ -19,7 +27,7 @@ def atualizar_produto(id: int, produto: dict):
 
 def apagar_produto(id: int):
     response = httpx.delete(f"{BASE_URL}/produtos/{id}")
-    return {"status_code": response.status_code}
+    return response.json()
 
 def maior_preco():
     response = httpx.get(f"{BASE_URL}/produtos/maior_preco")
@@ -56,7 +64,7 @@ if __name__ == "__main__":
 
 
     print("\nAtualizando produto que acabou de ser criado:")
-    id_produto = produto_criado.get("id")
+    id_produto = produto_criado["produto"]["id"]
     dados_atualizados = {"nome": "Corda de Pular Profissional", "categoria": "Fitness PRO", "preco": 55.75}
     print(atualizar_produto(id_produto, dados_atualizados))
     print("-" * 30)
