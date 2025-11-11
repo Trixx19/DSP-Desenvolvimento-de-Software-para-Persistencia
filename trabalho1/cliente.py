@@ -1,127 +1,105 @@
-#uvicorn servidor:app --reload
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import pandas as pd
-import os
-import asyncio
+import httpx
+BASE_URL = "http://127.0.0.1:8000"
 
-app = FastAPI() #iniciar api
-lock = asyncio.Lock() #Protege a região crítica quando várias requisições paralelas tentam modificar o DataFrame ao mesmo tempo.
-CSV_FILE = "produtos.csv"
-
-class Produto(BaseModel):
-    id: int | None = None
-    nome: str
-    categoria: str
-    preco: float
-
-if os.path.exists(CSV_FILE):
-    produtos_df = pd.read_csv(CSV_FILE)
-else:
-    print("Arquivo produtos.csv não encontrado. Criando arquivo vazio...")
-    produtos_df = pd.DataFrame(columns=["id", "nome", "categoria", "preco"])
-
-next_id = produtos_df["id"].max() + 1 if not produtos_df.empty else 1
-#print("Primeira ID:", next_id) #está certo
-
-@app.get("/produtos") #todos produtos
 def listar_produtos():
-    return produtos_df.to_dict(orient='records')
+    response = httpx.get(f"{BASE_URL}/produtos")
+    return response.json()
 
-@app.post("/produtos")
-async def criar_produto(produto: Produto):
-    async with lock:
-        global next_id, produtos_df
-        
-        novo_produto_data = {
-            'id': int(next_id),
-            'nome': produto.nome,
-            'categoria': produto.categoria,
-            'preco': produto.preco
-        }
-        
-        novo_produto_df = pd.DataFrame([novo_produto_data])
-        produtos_df = pd.concat([produtos_df, novo_produto_df], ignore_index=True)
-        
-        next_id += 1 
-        produtos_df.to_csv("produtos.csv", index=False)
-        return {
-            "mensagem": "Produto criado com sucesso!",
-            "produto": novo_produto_data
-        }
-
-@app.put("/produtos/{id}")
-async def atualizar_produto(id: int, produto: Produto):
-    global produtos_df
-    async with lock:
-        antigo_idx = produtos_df.index[produtos_df["id"] == id]
-        if antigo_idx.empty:
-            raise HTTPException(status_code=404, detail=f"Produto id:{id} não encontrado")
-
-        produtos_df.loc[antigo_idx, ["nome", "categoria", "preco"]] = [
-            produto.nome, produto.categoria, produto.preco
-        ]
-
-        produtos_df.to_csv(CSV_FILE, index=False)
-
-        return {
-            "mensagem": f"Produto {id} atualizado com sucesso!",
-            "produto": produtos_df.loc[antigo_idx].to_dict(orient="records")[0]
-        }
-
-@app.delete("/produtos/{id}")
-async def apagar_produto(id: int):
-    global produtos_df
-    async with lock:
-        produto_apagar_idx = produtos_df.index[ produtos_df["id"] == id ]
-        if produto_apagar_idx.empty:
-            raise HTTPException(status_code=404, detail=f"Produto com id:{id}, não encontrado")
-        produtos_df = produtos_df.drop(produto_apagar_idx).reset_index(drop = True)
-        produtos_df.to_csv(CSV_FILE, index=False)
-        return { "mensagem":  f"Produto com id {id} apagado com sucesso!"}
-
-#SERVIÇOS ADICIONAIS___________________________________________
-#O produto de maior preço e o nome do produto;
-@app.get("/produtos/maior_preco")
-def maior_preco():
-    maior = produtos_df["preco"].max()
-    produtos = produtos_df[produtos_df["preco"] == maior]
-    return {
-        "mensagem": f"Produtos com maior preço ({maior}):",
-        "produtos": produtos.to_dict(orient="records")
-    }
-
-@app.get("/produtos/menor_preco")
-def menor_preco():
-    menor = produtos_df["preco"].min()
-    produtos = produtos_df[produtos_df["preco"] == menor]
-    return {
-        "mensagem": f"Produtos com menor preço ({menor}):",
-        "produtos": produtos.to_dict(orient="records")
-    }
-
-
-#A média de  preços;
-@app.get("/produtos/media_precos")
-def media_preco():
-    return {"media": produtos_df["preco"].mean()}
-
-#A lista dos produtos mais caros, que estão acima da média (ou igual);
-@app.get("/produtos/acima_media")
-def acima_media():
-    media = produtos_df["preco"].mean()
-    return produtos_df[produtos_df["preco"] >= media].to_dict(orient="records")
-
-#A lista dos produtos mais baratos, que estão abaixo da média;
-@app.get("/produtos/abaixo_media")
-def abaixo_media():
-    media = produtos_df["preco"].mean()
-    return produtos_df[produtos_df["preco"] < media].to_dict(orient="records")
-
-#________________________
-@app.get("/produtos/{id}")#sempre ultima para não pegar rotas erradas(especificas)
 def get_produto_by_id(id: int):
-    produto = produtos_df[produtos_df['id'] == id]
-    if produto.empty:
-        raise HTTPException(status_code=404, detail="Produto não encontrado")
-    return produto.to_dict(orient='records')[0]
+    response = httpx.get(f"{BASE_URL}/produtos/{id}")
+    return response.json()
+
+def criar_produto(produto): #dict ou Produto? #Servidor o BaseModel Produto para validar entrada
+    response = httpx.post(
+        f"{BASE_URL}/produtos",
+        json={
+            "nome": produto.get("nome"),
+            "categoria": produto.get("categoria"),
+            "preco": produto.get("preco")
+        }
+    )
+    return response.json()
+
+
+def atualizar_produto(id: int, produto: dict):
+    response = httpx.put(f"{BASE_URL}/produtos/{id}", json=produto)
+    return response.json()
+
+def apagar_produto(id: int):
+    response = httpx.delete(f"{BASE_URL}/produtos/{id}")
+    return response.json()
+
+def maior_preco():
+    response = httpx.get(f"{BASE_URL}/produtos/maior_preco")
+    return response.json()
+
+def menor_preco():
+    response = httpx.get(f"{BASE_URL}/produtos/menor_preco")
+    return response.json()
+
+def media_precos():
+    response = httpx.get(f"{BASE_URL}/produtos/media_precos")
+    return response.json()
+
+def acima_media():
+    response = httpx.get(f"{BASE_URL}/produtos/acima_media")
+    return response.json()
+
+def abaixo_media():
+    response = httpx.get(f"{BASE_URL}/produtos/abaixo_media")
+    return response.json()
+
+
+if __name__ == "__main__":
+    print("Testando todos os serviços de forma separada....")
+    print("\nListando produtos iniciais:")
+    print(listar_produtos())
+    print("-" * 30)
+
+    print("\nCriando novo produto 'Corda de Pular':")
+    novo_produto = {"nome": "Corda de Pular", "categoria": "Fitness", "preco": 35.00}
+    produto_criado = criar_produto(novo_produto)
+    print(produto_criado)
+    print("-" * 30)
+
+
+    print("\nAtualizando produto que acabou de ser criado:")
+    id_produto = produto_criado["produto"]["id"]
+    dados_atualizados = {"nome": "Corda de Pular Profissional", "categoria": "Fitness PRO", "preco": 55.75}
+    print(atualizar_produto(id_produto, dados_atualizados))
+    print("-" * 30)
+
+    print("\nObtendo produto atualizado:")
+    print(get_produto_by_id(id_produto))
+    print("-" * 30)
+
+    print("\nApagando produto:")
+    print(apagar_produto(id_produto))
+    print("-" * 30)
+
+    print("\nListando produtos finais:")
+    print(listar_produtos())
+    print("-" * 30)
+
+    print("TESTANDO OPERAÇÕES ADICIONAIS")
+    print("Pegando produto com maior preço:")
+    print(maior_preco())
+    print("-" * 30)
+
+    print("Pegando produto com menor preço:")
+    print(menor_preco())
+    print("-" * 30)
+
+    print("Calculando média de preços:")
+    print(media_precos())
+    print("-" * 30)
+
+    print("Listando produtos acima da média:")
+    print(acima_media())
+    print("-" * 30)
+
+    print("Listando produtos abaixo da média:")
+    print(abaixo_media())
+    print("-" * 30)
+    
+    print("TESTES CONCLUÍDOS")
