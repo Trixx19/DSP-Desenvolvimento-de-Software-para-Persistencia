@@ -84,18 +84,20 @@ async def apagar_produto(id: int):
 #O produto de maior preço e o nome do produto;
 @app.get("/produtos/maior_preco")
 def maior_preco():
-    produto = produtos_df.loc[produtos_df["preco"] == produtos_df["preco"].max()].iloc[0]
+    maior = produtos_df["preco"].max()
+    produtos = produtos_df[produtos_df["preco"] == maior]
     return {
-        "mensagem": f"Produto de maior preço é '{produto['nome']}', custando {produto['preco']}.",
-        "produto": produto.to_dict()
+        "mensagem": f"Produtos com maior preço ({maior}):",
+        "produtos": produtos.to_dict(orient="records")
     }
-#O produto de menor preço e o nome do produto;
+
 @app.get("/produtos/menor_preco")
 def menor_preco():
-    produto = produtos_df.loc[produtos_df["preco"] == produtos_df["preco"].min()].iloc[0]
+    menor = produtos_df["preco"].min()
+    produtos = produtos_df[produtos_df["preco"] == menor]
     return {
-        "mensagem": f"Produto de menor preço é '{produto['nome']}', custando {produto['preco']}.",
-        "produto": produto.to_dict()
+        "mensagem": f"Produtos com menor preço ({menor}):",
+        "produtos": produtos.to_dict(orient="records")
     }
 
 
